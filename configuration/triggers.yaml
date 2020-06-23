@@ -1,0 +1,5 @@
+- id: ui-switch
+  entity_id: input_boolean.light_notification
+  exhibitions: [notification]
+  activate: 'on'
+  # deactivate: 'off'

@@ -1,0 +1,7 @@
+---
+  - id: default
+    color: white
+
+  - id: alert
+    color: red
+    expiration: 1

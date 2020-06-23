@@ -1,0 +1,6 @@
+---
+  - entity_id: light.skyler_room
+    exhibitions:
+    - notification
+    - kelvin
+    - default

@@ -1,0 +1,13 @@
+---
+
+- id: notification
+  scene: alert
+  interrupt: true
+  triggers:
+    - ui-switch
+
+- id: default
+  scene: default
+  activated: true
+
+- id: circadian_lighting
