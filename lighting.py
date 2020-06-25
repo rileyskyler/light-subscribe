@@ -43,54 +43,36 @@ class Light:
         self.lighting = lighting
         self.id = config['entity_id']
         self.power = state['state']
-        self.interrupt = None
-        if('interrupt' in config):
-            self.interrupt = config['interrupt']
         self.exhibitions = []
 
     def register_exhibitions(self, exhibitions):
         self.exhibitions = exhibitions
-        self.manual_update()
+        self.update()
 
-    def manual_update(self):
-        layer_index = 0
-        updated_light = False
-        for layer_exhibition in self.exhibitions:
-            if(layer_exhibition.active):
-                self.update_light(layer_exhibition, 'on')
-                updated_light = True
-                break
-            ++layer_index
-        if(not updated_light):
-            self.update_light(None, 'off')
+    def update(self):
+        matched_exhibition = False
+        for idx, exhibition in self.exhibitions:
+            if(exhibition.active):
+                if(exhibition.cluster):
+                    matched_exhibition = True
+                    return self.id
+                else:
+                    self.render(exhibition)
+                    matched_exhibition = True
+            break
+        if(not matched_exhibition):
+            self.render(None)
 
-    def activate(self, exhibition):
-        self.lighting.log(exhibition.scene.color)
-        layer_index = 0
-        for layer_exhibition in self.exhibitions:
-            if(layer_exhibition.id == exhibition.id):
-                self.exhibitions[layer_index] = exhibition
-                self.manual_update()
-                break
-
-    def deactivate(self, exhibition):
-        layer_index = 0
-        for layer_exhibition in self.exhibitions:
-            if(layer_exhibition.id == exhibition.id):
-                self.exhibitions[layer_index] = exhibition
-                self.manual_update()
-                break
-
-    def update_light(self, exhibition, power):
+    def render(self, exhibition):
         if(exhibition and (self.power == 'on' or exhibition.interrupt)):
-            return self.lighting.call_service(
+            return self.lighting.render(
                 "light/turn_on",
                 entity_id=[self.id],
                 color_name=exhibition.scene.color,
                 transition=0
             )
-        elif(self.power == 'on' and power == 'off'):
-            return self.lighting.call_service(
+        elif(self.power == 'on'):
+            return self.lighting.render(
                 "light/turn_off",
                 entity_id=self.id
             )
@@ -99,10 +81,11 @@ class Light:
 class Exhibition:
 
     def __init__(self, lighting, scene, config):
-        self.lighting = lighting
         self.id = config['id']
         self.scene = scene
         self.lights = []
+        self.cluster = True
+        self.lighting = lighting
 
         if('activated' in config):
             self.active = config['activated']
@@ -113,20 +96,30 @@ class Exhibition:
         self.lights.append(light)
 
     def activate(self):
-        self.lighting.log('activating')
-        self.lighting.log(self.lights)
         self.active = True
+        light_ids = []
         for light in self.lights:
-            light.activate(self)
+            id = light.update(self)
+            if(id):
+                light_ids.append(id)
+        if(light_ids):
+            self.render(light_ids)
         if(self.scene.expiration):
             time.sleep(self.scene.expiration)
             self.deactivate()
 
     def deactivate(self):
-        self.lighting.log('deactivating')
         self.active = False
         for light in self.lights:
-            light.deactivate(self)
+            light.render()
+
+    def render(self, light_ids):
+        return self.lighting.render(
+            "light/turn_on",
+            entity_id=lights,
+            color_name=exhibition.scene.color,
+            transition=0
+        )
 
 
 class Trigger:
